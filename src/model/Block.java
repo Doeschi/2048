@@ -1,7 +1,8 @@
 package model;
 
-import java.util.Random;
 import processing.core.PVector;
+
+import java.util.Random;
 
 public class Block {
 
