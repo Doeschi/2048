@@ -1,6 +1,7 @@
 package main;
 
 import model.Block;
+import model.Direction;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
@@ -10,6 +11,9 @@ import java.util.List;
 import java.util.Random;
 
 public class Main extends PApplet {
+
+    private Direction animationDirection = Direction.LEFT;
+    private int animationSpeed = 50;
 
     private PImage background;
     private int windowWidth = 800;
@@ -27,8 +31,12 @@ public class Main extends PApplet {
     private Block[][] oldGameField = new Block[tiles][tiles];
     private List<Block> blocks = new ArrayList<>();
     private List<Block> oldBlocks = new ArrayList<>();
-    private boolean blocksMoving = false;
+    private boolean inAnimation = false;
 
+    private boolean finishMove = false;
+
+    // TODO: Merge von 2 Blöcken smoother machen
+    // TODO: Mit Bildern arbeiten
 
     public void settings() {
         size(windowWidth, windowHeight);
@@ -44,48 +52,104 @@ public class Main extends PApplet {
 
     public void draw() {
         background(255);
+        animateMovement();
         drawGrid();
         translate(tileSize / 2, tileSize / 2);
         drawBlocks();
         translate(0, 0);
+        boolean hasFinishedAnimation = true;
+        for (Block block : blocks) {
+            if (block.isInAnimation()){
+                hasFinishedAnimation = false;
+            }
+        }
+        if(hasFinishedAnimation){
+            if(finishMove){
+                if(gameFieldHasChanged()) {
+                    spawnNewBlock();
+                }
+                updateValue();
+                removeMergedBlocks();
+                resetUnmergedProperty();
+                inAnimation = false;
+                finishMove = false;
+            }
+        }
     }
 
     public void keyPressed() {
-        if (!blocksMoving) {
+        if (!inAnimation) {
             if (key == 'r' || keyCode == 'R') {
                 gameField = oldGameField;
                 blocks = oldBlocks;
             } else if (keyCode == LEFT) {
+                animationDirection = Direction.LEFT;
                 startMove();
-                // TODO: Mit Bildern arbeiten
-
                 moveLeft();
-                endMove();
+                finishMove = true;
             } else if (keyCode == UP) {
+                animationDirection = Direction.UP;
                 startMove();
                 moveUp();
-                endMove();
+                finishMove = true;
             } else if (keyCode == RIGHT) {
+                animationDirection = Direction.RIGHT;
                 startMove();
                 moveRight();
-                endMove();
+                finishMove = true;
             } else if (keyCode == DOWN) {
+                animationDirection = Direction.DOWN;
                 startMove();
                 moveDown();
-                endMove();
+                finishMove = true;
+            }
+        }
+    }
+
+    private void animateMovement() {
+        if (animationDirection == Direction.LEFT) {
+            for (Block block : blocks) {
+                if (block.getPosition().x > block.getNextPosition().x) {
+                    block.setPosition(new PVector(block.getPosition().x - animationSpeed, block.getPosition().y));
+                } else {
+                    block.setInAnimation(false);
+                }
+            }
+
+        } else if (animationDirection == Direction.UP) {
+            for (Block block : blocks) {
+                if (block.getPosition().y > block.getNextPosition().y) {
+                    block.setPosition(new PVector(block.getPosition().x, block.getPosition().y - animationSpeed));
+                } else {
+                    block.setInAnimation(false);
+                }
+            }
+
+        } else if (animationDirection == Direction.RIGHT) {
+            for (Block block : blocks) {
+                if (block.getPosition().x < block.getNextPosition().x) {
+                    block.setPosition(new PVector(block.getPosition().x + animationSpeed, block.getPosition().y));
+                } else {
+                    block.setInAnimation(false);
+                }
+            }
+
+        } else {
+            for (Block block : blocks) {
+                if (block.getPosition().y < block.getNextPosition().y) {
+                    block.setPosition(new PVector(block.getPosition().x, block.getPosition().y + animationSpeed));
+                } else {
+                    block.setInAnimation(false);
+                }
             }
         }
     }
 
     private void startMove() {
-        blocksMoving = true;
+        inAnimation = true;
         saveGameState();
-    }
-
-    private void endMove() {
-        resetUnmergedProperty();
-        if (gameFieldHasChanged()) {
-            spawnNewBlock();
+        for (Block block : blocks) {
+            block.setInAnimation(true);
         }
     }
 
@@ -96,7 +160,7 @@ public class Main extends PApplet {
             for (int xCord = 0; xCord < tiles; xCord++) {
                 if (gameField[yCord][xCord] != null) {
                     Block currentBlock = gameField[yCord][xCord];
-                    Block newBlock = new Block(currentBlock.getValue(), currentBlock.getPosition(), currentBlock.isUnmerged(), currentBlock.getColor());
+                    Block newBlock = new Block(currentBlock.getValue(), currentBlock.getPosition(), currentBlock.getNextPosition(), currentBlock.isUnMerged(), currentBlock.getColor());
                     oldGameField[yCord][xCord] = newBlock;
                     oldBlocks.add(newBlock);
                 } else {
@@ -119,6 +183,23 @@ public class Main extends PApplet {
             }
         }
         return false;
+    }
+
+    private void updateValue(){
+        for (Block block : blocks) {
+            if (!block.isUnMerged()){
+                block.setValue(block.getValue() * 2);
+            }
+        }
+    }
+
+    private void removeMergedBlocks(){
+        List<Block> copyOfBlocks = new ArrayList<>(blocks);
+        for (Block block : copyOfBlocks) {
+            if (block.isMergeRemove()){
+                blocks.remove(block);
+            }
+        }
     }
 
     /**
@@ -199,26 +280,25 @@ public class Main extends PApplet {
                         Block currentBlock = gameField[yPos][xPos];
                         gameField[yPos][xPos] = null;
                         gameField[yPos][xRow] = currentBlock;
-                        currentBlock.setPosition(new PVector(xRow * tileSize, yPos * tileSize));
+                        currentBlock.setNextPosition(new PVector(xRow * tileSize, yPos * tileSize));
                         xRow++;
                     } else {
-                        if (gameField[yPos][xRow - 1].getValue() == gameField[yPos][xPos].getValue() && gameField[yPos][xRow - 1].isUnmerged()) {
-                            gameField[yPos][xRow - 1].setValue(gameField[yPos][xRow - 1].getValue() * 2);
-                            gameField[yPos][xRow - 1].setUnmerged(false);
-                            blocks.remove(gameField[yPos][xPos]);
+                        if (gameField[yPos][xRow - 1].getValue() == gameField[yPos][xPos].getValue() && gameField[yPos][xRow - 1].isUnMerged()) {
+                            gameField[yPos][xRow - 1].setUnMerged(false);
+                            gameField[yPos][xPos].setMergeRemove(true);
+                            gameField[yPos][xPos].setNextPosition(gameField[yPos][xRow - 1].getNextPosition());
                             gameField[yPos][xPos] = null;
                         } else {
                             Block currentBlock = gameField[yPos][xPos];
                             gameField[yPos][xPos] = null;
                             gameField[yPos][xRow] = currentBlock;
-                            currentBlock.setPosition(new PVector(xRow * tileSize, yPos * tileSize));
+                            currentBlock.setNextPosition(new PVector(xRow * tileSize, yPos * tileSize));
                             xRow++;
                         }
                     }
                 }
             }
         }
-        blocksMoving = false;
     }
 
     private void moveUp() {
@@ -230,26 +310,25 @@ public class Main extends PApplet {
                         Block currentBlock = gameField[yPos][xPos];
                         gameField[yPos][xPos] = null;
                         gameField[yRow][xPos] = currentBlock;
-                        currentBlock.setPosition(new PVector(xPos * tileSize, yRow * tileSize));
+                        currentBlock.setNextPosition(new PVector(xPos * tileSize, yRow * tileSize));
                         yRow++;
                     } else {
-                        if (gameField[yRow - 1][xPos].getValue() == gameField[yPos][xPos].getValue()) {
-                            gameField[yRow - 1][xPos].setValue(gameField[yRow - 1][xPos].getValue() * 2);
-                            blocks.remove(gameField[yPos][xPos]);
+                        if (gameField[yRow - 1][xPos].getValue() == gameField[yPos][xPos].getValue() && gameField[yRow - 1][xPos].isUnMerged()) {
+                            gameField[yRow - 1][xPos].setUnMerged(false);
+                            gameField[yPos][xPos].setMergeRemove(true);
+                            gameField[yPos][xPos].setNextPosition(gameField[yRow - 1][xPos].getNextPosition());
                             gameField[yPos][xPos] = null;
                         } else {
                             Block currentBlock = gameField[yPos][xPos];
                             gameField[yPos][xPos] = null;
                             gameField[yRow][xPos] = currentBlock;
-                            currentBlock.setPosition(new PVector(xPos * tileSize, yRow * tileSize));
+                            currentBlock.setNextPosition(new PVector(xPos * tileSize, yRow * tileSize));
                             yRow++;
                         }
                     }
                 }
             }
         }
-
-        blocksMoving = false;
     }
 
     private void moveRight() {
@@ -261,25 +340,25 @@ public class Main extends PApplet {
                         Block currentBlock = gameField[yPos][xPos];
                         gameField[yPos][xPos] = null;
                         gameField[yPos][xRow] = currentBlock;
-                        currentBlock.setPosition(new PVector(xRow * tileSize, yPos * tileSize));
+                        currentBlock.setNextPosition(new PVector(xRow * tileSize, yPos * tileSize));
                         xRow--;
                     } else {
-                        if (gameField[yPos][xRow + 1].getValue() == gameField[yPos][xPos].getValue()) {
-                            gameField[yPos][xRow + 1].setValue(gameField[yPos][xRow + 1].getValue() * 2);
-                            blocks.remove(gameField[yPos][xPos]);
+                        if (gameField[yPos][xRow + 1].getValue() == gameField[yPos][xPos].getValue() && gameField[yPos][xRow + 1].isUnMerged()) {
+                            gameField[yPos][xRow + 1].setUnMerged(false);
+                            gameField[yPos][xPos].setMergeRemove(true);
+                            gameField[yPos][xPos].setNextPosition(gameField[yPos][xRow + 1].getNextPosition());
                             gameField[yPos][xPos] = null;
                         } else {
                             Block currentBlock = gameField[yPos][xPos];
                             gameField[yPos][xPos] = null;
                             gameField[yPos][xRow] = currentBlock;
-                            currentBlock.setPosition(new PVector(xRow * tileSize, yPos * tileSize));
+                            currentBlock.setNextPosition(new PVector(xRow * tileSize, yPos * tileSize));
                             xRow--;
                         }
                     }
                 }
             }
         }
-        blocksMoving = false;
     }
 
     private void moveDown() {
@@ -291,30 +370,30 @@ public class Main extends PApplet {
                         Block currentBlock = gameField[yPos][xPos];
                         gameField[yPos][xPos] = null;
                         gameField[yRow][xPos] = currentBlock;
-                        currentBlock.setPosition(new PVector(xPos * tileSize, yRow * tileSize));
+                        currentBlock.setNextPosition(new PVector(xPos * tileSize, yRow * tileSize));
                         yRow--;
                     } else {
-                        if (gameField[yRow + 1][xPos].getValue() == gameField[yPos][xPos].getValue()) {
-                            gameField[yRow + 1][xPos].setValue(gameField[yRow + 1][xPos].getValue() * 2);
-                            blocks.remove(gameField[yPos][xPos]);
+                        if (gameField[yRow + 1][xPos].getValue() == gameField[yPos][xPos].getValue() && gameField[yRow + 1][xPos].isUnMerged()) {
+                            gameField[yRow + 1][xPos].setUnMerged(false);
+                            gameField[yPos][xPos].setMergeRemove(true);
+                            gameField[yPos][xPos].setNextPosition(gameField[yRow + 1][xPos].getNextPosition());
                             gameField[yPos][xPos] = null;
                         } else {
                             Block currentBlock = gameField[yPos][xPos];
                             gameField[yPos][xPos] = null;
                             gameField[yRow][xPos] = currentBlock;
-                            currentBlock.setPosition(new PVector(xPos * tileSize, yRow * tileSize));
+                            currentBlock.setNextPosition(new PVector(xPos * tileSize, yRow * tileSize));
                             yRow--;
                         }
                     }
                 }
             }
         }
-        blocksMoving = false;
     }
 
     private void resetUnmergedProperty() {
         for (Block block : blocks) {
-            block.setUnmerged(true);
+            block.setUnMerged(true);
         }
     }
 

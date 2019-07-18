@@ -8,20 +8,28 @@ public class Block {
 
     private int[] startValues = {2, 4};
     private int value;
+
     private PVector position;
-    private boolean unmerged = true;
+    private PVector nextPosition;
+
+    private boolean inAnimation;
+    private boolean mergeRemove = false;
+    private boolean unMerged = true;
+
     private JColor color;
 
     public Block(PVector position){
         this.position = position;
+        this.nextPosition = position;
         this.value = startValues[new Random().nextInt(2)];
         changeColor();
     }
 
-    public Block(int value, PVector position, boolean unmerged, JColor color){
+    public Block(int value, PVector position, PVector nextPosition, boolean unMerged, JColor color){
         this.value = value;
         this.position = position;
-        this.unmerged = unmerged;
+        this.nextPosition = nextPosition;
+        this.unMerged = unMerged;
         this.color = color;
     }
 
@@ -42,12 +50,36 @@ public class Block {
         this.position = position;
     }
 
-    public boolean isUnmerged() {
-        return this.unmerged;
+    public PVector getNextPosition() {
+        return this.nextPosition;
     }
 
-    public void setUnmerged(boolean unmerged) {
-        this.unmerged = unmerged;
+    public void setNextPosition(PVector nextPosition) {
+        this.nextPosition = nextPosition;
+    }
+
+    public boolean isInAnimation() {
+        return this.inAnimation;
+    }
+
+    public void setInAnimation(boolean inAnimation) {
+        this.inAnimation = inAnimation;
+    }
+
+    public boolean isMergeRemove() {
+        return mergeRemove;
+    }
+
+    public void setMergeRemove(boolean mergeRemove) {
+        this.mergeRemove = mergeRemove;
+    }
+
+    public boolean isUnMerged() {
+        return this.unMerged;
+    }
+
+    public void setUnMerged(boolean unMerged) {
+        this.unMerged = unMerged;
     }
 
     public JColor getColor() {
