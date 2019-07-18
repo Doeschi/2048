@@ -37,17 +37,17 @@ public class Main extends PApplet {
     public void setup() {
         frameRate(30);
         background = loadImage("background.png");
-
         for (int i = 0; i < 2; i++) {
             spawnNewBlock();
         }
     }
 
     public void draw() {
-        image(background, 0, 0);
+        background(255);
+        drawGrid();
         translate(tileSize / 2, tileSize / 2);
         drawBlocks();
-        translate(0,0);
+        translate(0, 0);
     }
 
     public void keyPressed() {
@@ -110,16 +110,12 @@ public class Main extends PApplet {
         for (int yCord = 0; yCord < tiles; yCord++) {
             for (int xCord = 0; xCord < tiles; xCord++) {
                 if ((oldGameField[yCord][xCord] == null && gameField[yCord][xCord] != null) || (oldGameField[yCord][xCord] != null && gameField[yCord][xCord] == null)) {
-                    System.out.println(1);
                     return true;
                 } else if (oldGameField[yCord][xCord] != null && gameField[yCord][xCord] != null) {
-                    System.out.println(3);
                     if (oldGameField[yCord][xCord].getValue() != gameField[yCord][xCord].getValue()) {
-                        System.out.println(2);
                         return true;
                     }
                 }
-                System.out.println(0);
             }
         }
         return false;
@@ -149,10 +145,8 @@ public class Main extends PApplet {
         Random random = new Random();
         do {
             boolean freeCordinates = true;
-            int randomX = random.nextInt(tiles);
-            int randomY = random.nextInt(tiles);
-            int xCord = (randomX * tileSize) + (randomX * gridLineOffset) + imageXOffset;
-            int yCord = (randomY * tileSize) + (randomY * gridLineOffset) + imageYOffset;
+            int xCord = (random.nextInt(tiles) * tileSize);
+            int yCord = (random.nextInt(tiles) * tileSize);
             for (Block block : blocks) {
                 if (block.getPosition().x == xCord && block.getPosition().y == yCord) {
                     freeCordinates = false;
@@ -162,7 +156,7 @@ public class Main extends PApplet {
             if (freeCordinates) {
                 Block block = new Block(new PVector(xCord, yCord));
                 blocks.add(block);
-                gameField[randomX][randomY] = block;
+                gameField[(yCord / tileSize)][xCord / tileSize] = block;
                 break;
             }
         } while (true);
@@ -174,6 +168,7 @@ public class Main extends PApplet {
      */
     private void drawBlocks() {
         for (Block block : blocks) {
+            //fill(235, 116, 12);
             fill(block.getColor().getRed(), block.getColor().getGreen(), block.getColor().getBlue());
             rectMode(CENTER);
             rect(block.getPosition().x, block.getPosition().y, tileSize, tileSize);
@@ -201,7 +196,10 @@ public class Main extends PApplet {
             for (int xPos = 0; xPos < tiles; xPos++) {
                 if (gameField[yPos][xPos] != null) {
                     if (xRow == 0) {
-                        updatePositionLeft(yPos, xPos, xRow);
+                        Block currentBlock = gameField[yPos][xPos];
+                        gameField[yPos][xPos] = null;
+                        gameField[yPos][xRow] = currentBlock;
+                        currentBlock.setPosition(new PVector(xRow * tileSize, yPos * tileSize));
                         xRow++;
                     } else {
                         if (gameField[yPos][xRow - 1].getValue() == gameField[yPos][xPos].getValue() && gameField[yPos][xRow - 1].isUnmerged()) {
@@ -210,25 +208,17 @@ public class Main extends PApplet {
                             blocks.remove(gameField[yPos][xPos]);
                             gameField[yPos][xPos] = null;
                         } else {
-                            updatePositionLeft(yPos, xPos, xRow);
+                            Block currentBlock = gameField[yPos][xPos];
+                            gameField[yPos][xPos] = null;
+                            gameField[yPos][xRow] = currentBlock;
+                            currentBlock.setPosition(new PVector(xRow * tileSize, yPos * tileSize));
                             xRow++;
                         }
                     }
                 }
             }
         }
-
         blocksMoving = false;
-    }
-
-    @SuppressWarnings("Duplicates")
-    private void updatePositionLeft(int yPos, int xPos, int xRow) {
-        Block currentBlock = gameField[yPos][xPos];
-        gameField[yPos][xPos] = null;
-        gameField[yPos][xRow] = currentBlock;
-        int newXCord = (xRow * tileSize) + (xRow * gridLineOffset) + imageXOffset;
-        int newYCord = (yPos * tileSize) + (yPos * gridLineOffset) + imageYOffset;
-        currentBlock.setPosition(new PVector(newXCord, newYCord));
     }
 
     private void moveUp() {
@@ -237,7 +227,10 @@ public class Main extends PApplet {
             for (int yPos = 0; yPos < tiles; yPos++) {
                 if (gameField[yPos][xPos] != null) {
                     if (yRow == 0) {
-                        updatePositionUp(yPos, xPos, yRow);
+                        Block currentBlock = gameField[yPos][xPos];
+                        gameField[yPos][xPos] = null;
+                        gameField[yRow][xPos] = currentBlock;
+                        currentBlock.setPosition(new PVector(xPos * tileSize, yRow * tileSize));
                         yRow++;
                     } else {
                         if (gameField[yRow - 1][xPos].getValue() == gameField[yPos][xPos].getValue()) {
@@ -245,24 +238,18 @@ public class Main extends PApplet {
                             blocks.remove(gameField[yPos][xPos]);
                             gameField[yPos][xPos] = null;
                         } else {
-                            updatePositionUp(yPos, xPos, yRow);
+                            Block currentBlock = gameField[yPos][xPos];
+                            gameField[yPos][xPos] = null;
+                            gameField[yRow][xPos] = currentBlock;
+                            currentBlock.setPosition(new PVector(xPos * tileSize, yRow * tileSize));
                             yRow++;
                         }
                     }
                 }
             }
         }
-        blocksMoving = false;
-    }
 
-    @SuppressWarnings("Duplicates")
-    private void updatePositionUp(int yPos, int xPos, int yRow) {
-        Block currentBlock = gameField[yPos][xPos];
-        gameField[yPos][xPos] = null;
-        gameField[yRow][xPos] = currentBlock;
-        int newXCord = (xPos * tileSize) + (xPos * gridLineOffset) + imageXOffset;
-        int newYCord = (yRow * tileSize) + (yRow * gridLineOffset) + imageYOffset;
-        currentBlock.setPosition(new PVector(newXCord, newYCord));
+        blocksMoving = false;
     }
 
     private void moveRight() {
@@ -271,7 +258,10 @@ public class Main extends PApplet {
             for (int xPos = tiles - 1; 0 <= xPos; xPos--) {
                 if (gameField[yPos][xPos] != null) {
                     if (xRow == tiles - 1) {
-                        updatePositionRight(yPos, xPos, xRow);
+                        Block currentBlock = gameField[yPos][xPos];
+                        gameField[yPos][xPos] = null;
+                        gameField[yPos][xRow] = currentBlock;
+                        currentBlock.setPosition(new PVector(xRow * tileSize, yPos * tileSize));
                         xRow--;
                     } else {
                         if (gameField[yPos][xRow + 1].getValue() == gameField[yPos][xPos].getValue()) {
@@ -279,7 +269,10 @@ public class Main extends PApplet {
                             blocks.remove(gameField[yPos][xPos]);
                             gameField[yPos][xPos] = null;
                         } else {
-                            updatePositionRight(yPos, xPos, xRow);
+                            Block currentBlock = gameField[yPos][xPos];
+                            gameField[yPos][xPos] = null;
+                            gameField[yPos][xRow] = currentBlock;
+                            currentBlock.setPosition(new PVector(xRow * tileSize, yPos * tileSize));
                             xRow--;
                         }
                     }
@@ -289,23 +282,16 @@ public class Main extends PApplet {
         blocksMoving = false;
     }
 
-    @SuppressWarnings("Duplicates")
-    private void updatePositionRight(int yPos, int xPos, int xRow) {
-        Block currentBlock = gameField[yPos][xPos];
-        gameField[yPos][xPos] = null;
-        gameField[yPos][xRow] = currentBlock;
-        int newXCord = (xRow * tileSize) + (xRow * gridLineOffset) + imageXOffset;
-        int newYCord = (yPos * tileSize) + (yPos * gridLineOffset) + imageYOffset;
-        currentBlock.setPosition(new PVector(newXCord, newYCord));
-    }
-
     private void moveDown() {
         for (int xPos = 0; xPos < tiles; xPos++) {
             int yRow = tiles - 1;
             for (int yPos = tiles - 1; 0 <= yPos; yPos--) {
                 if (gameField[yPos][xPos] != null) {
                     if (yRow == tiles - 1) {
-                        updatePositionDown(yPos, xPos, yRow);
+                        Block currentBlock = gameField[yPos][xPos];
+                        gameField[yPos][xPos] = null;
+                        gameField[yRow][xPos] = currentBlock;
+                        currentBlock.setPosition(new PVector(xPos * tileSize, yRow * tileSize));
                         yRow--;
                     } else {
                         if (gameField[yRow + 1][xPos].getValue() == gameField[yPos][xPos].getValue()) {
@@ -313,7 +299,10 @@ public class Main extends PApplet {
                             blocks.remove(gameField[yPos][xPos]);
                             gameField[yPos][xPos] = null;
                         } else {
-                            updatePositionDown(yPos, xPos, yRow);
+                            Block currentBlock = gameField[yPos][xPos];
+                            gameField[yPos][xPos] = null;
+                            gameField[yRow][xPos] = currentBlock;
+                            currentBlock.setPosition(new PVector(xPos * tileSize, yRow * tileSize));
                             yRow--;
                         }
                     }
@@ -322,17 +311,6 @@ public class Main extends PApplet {
         }
         blocksMoving = false;
     }
-
-    @SuppressWarnings("Duplicates")
-    private void updatePositionDown(int yPos, int xPos, int yRow) {
-        Block currentBlock = gameField[yPos][xPos];
-        gameField[yPos][xPos] = null;
-        gameField[yRow][xPos] = currentBlock;
-        int newXCord = (xPos * tileSize) + (xPos * gridLineOffset) + imageXOffset;
-        int newYCord = (yRow * tileSize) + (yRow * gridLineOffset) + imageYOffset;
-        currentBlock.setPosition(new PVector(newXCord, newYCord));
-    }
-
 
     private void resetUnmergedProperty() {
         for (Block block : blocks) {
