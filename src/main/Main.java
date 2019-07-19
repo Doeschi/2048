@@ -31,13 +31,16 @@ public class Main extends PApplet {
     private Block[][] oldGameField = new Block[tiles][tiles];
     private List<Block> blocks = new ArrayList<>();
     private List<Block> oldBlocks = new ArrayList<>();
-    private boolean inAnimation = false;
 
+    private boolean inAnimation = false;
     private boolean finishMove = false;
 
     // TODO: Merge von 2 Blöcken smoother machen
     // TODO: Mit Bildern arbeiten
     // TODO: Loosing Condition
+    // TODO: Arrays in Matrix Objekte verwandeln
+
+    // Processing Setup
 
     public void settings() {
         size(windowWidth, windowHeight);
@@ -62,24 +65,8 @@ public class Main extends PApplet {
         translate(0, 0);
 
         if (!inAnimation && finishMove) {
-            if (gameFieldHasChanged()) {
-                spawnNewBlock();
-            }
-            updateValues();
-            removeMergedBlocks();
-            resetUnmergedProperty();
-            finishMove = false;
+            endMove();
         }
-    }
-
-    private void setInAnimation() {
-        for (Block block : blocks) {
-            if (block.isInAnimation()) {
-                inAnimation = true;
-                return;
-            }
-        }
-        inAnimation = false;
     }
 
     public void keyPressed() {
@@ -108,6 +95,23 @@ public class Main extends PApplet {
                 finishMove = true;
             }
         }
+    }
+
+    private void startMove() {
+        saveGameState();
+        for (Block block : blocks) {
+            block.setInAnimation(true);
+        }
+    }
+
+    private void endMove(){
+        if (gameFieldHasChanged()) {
+            spawnNewBlock();
+        }
+        updateValues();
+        removeMergedBlocks();
+        resetUnmergedProperty();
+        finishMove = false;
     }
 
     private void animateMovement() {
@@ -149,11 +153,15 @@ public class Main extends PApplet {
         }
     }
 
-    private void startMove() {
-        saveGameState();
+
+    private void setInAnimation() {
         for (Block block : blocks) {
-            block.setInAnimation(true);
+            if (block.isInAnimation()) {
+                inAnimation = true;
+                return;
+            }
         }
+        inAnimation = false;
     }
 
     private void saveGameState() {
@@ -231,31 +239,6 @@ public class Main extends PApplet {
     }
 
     /**
-     * Creates a new block and makes sure that it is not placed above another block.
-     */
-    private void spawnNewBlock() {
-        Random random = new Random();
-        do {
-            boolean freeCordinates = true;
-            int xCord = (random.nextInt(tiles) * tileSize);
-            int yCord = (random.nextInt(tiles) * tileSize);
-            for (Block block : blocks) {
-                if (block.getPosition().x == xCord && block.getPosition().y == yCord) {
-                    freeCordinates = false;
-                }
-            }
-
-            if (freeCordinates) {
-                Block block = new Block(new PVector(xCord, yCord));
-                blocks.add(block);
-                gameField[(yCord / tileSize)][xCord / tileSize] = block;
-                break;
-            }
-        } while (true);
-
-    }
-
-    /**
      * Draws every block
      */
     private void drawBlocks() {
@@ -280,6 +263,31 @@ public class Main extends PApplet {
         textAlign(CENTER, CENTER);
         text(block.getValue(), block.getPosition().x, block.getPosition().y);
         noFill();
+    }
+
+    /**
+     * Creates a new block and makes sure that it is not placed above another block.
+     */
+    private void spawnNewBlock() {
+        Random random = new Random();
+        do {
+            boolean freeCordinates = true;
+            int xCord = (random.nextInt(tiles) * tileSize);
+            int yCord = (random.nextInt(tiles) * tileSize);
+            for (Block block : blocks) {
+                if (block.getPosition().x == xCord && block.getPosition().y == yCord) {
+                    freeCordinates = false;
+                }
+            }
+
+            if (freeCordinates) {
+                Block block = new Block(new PVector(xCord, yCord));
+                blocks.add(block);
+                gameField[(yCord / tileSize)][xCord / tileSize] = block;
+                break;
+            }
+        } while (true);
+
     }
 
     private void moveLeft() {
