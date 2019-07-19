@@ -13,9 +13,9 @@ import java.util.Random;
 public class Main extends PApplet {
 
     private Direction animationDirection = Direction.LEFT;
-    private int animationSpeed = 50;
+    private int animationSpeed = 25;
 
-    private PImage background;
+    private PImage backgroundImage;
     private int windowWidth = 800;
     private int windowHeight = 950;
 
@@ -37,51 +37,55 @@ public class Main extends PApplet {
 
     // TODO: Merge von 2 Blöcken smoother machen
     // TODO: Mit Bildern arbeiten
+    // TODO: Loosing Condition
 
     public void settings() {
         size(windowWidth, windowHeight);
     }
 
     public void setup() {
-        frameRate(30);
-        background = loadImage("background.png");
+        frameRate(100);
+        backgroundImage = loadImage("background.png");
         for (int i = 0; i < 2; i++) {
             spawnNewBlock();
         }
+        saveGameState();
     }
 
     public void draw() {
         background(255);
         animateMovement();
+        setInAnimation();
         drawGrid();
         translate(tileSize / 2, tileSize / 2);
         drawBlocks();
         translate(0, 0);
-        boolean hasFinishedAnimation = true;
+
+        if (!inAnimation && finishMove) {
+            if (gameFieldHasChanged()) {
+                spawnNewBlock();
+            }
+            updateValues();
+            removeMergedBlocks();
+            resetUnmergedProperty();
+            finishMove = false;
+        }
+    }
+
+    private void setInAnimation() {
         for (Block block : blocks) {
-            if (block.isInAnimation()){
-                hasFinishedAnimation = false;
+            if (block.isInAnimation()) {
+                inAnimation = true;
+                return;
             }
         }
-        if(hasFinishedAnimation){
-            if(finishMove){
-                if(gameFieldHasChanged()) {
-                    spawnNewBlock();
-                }
-                updateValue();
-                removeMergedBlocks();
-                resetUnmergedProperty();
-                inAnimation = false;
-                finishMove = false;
-            }
-        }
+        inAnimation = false;
     }
 
     public void keyPressed() {
         if (!inAnimation) {
             if (key == 'r' || keyCode == 'R') {
-                gameField = oldGameField;
-                blocks = oldBlocks;
+                loadOldGameState();
             } else if (keyCode == LEFT) {
                 animationDirection = Direction.LEFT;
                 startMove();
@@ -146,7 +150,6 @@ public class Main extends PApplet {
     }
 
     private void startMove() {
-        inAnimation = true;
         saveGameState();
         for (Block block : blocks) {
             block.setInAnimation(true);
@@ -170,35 +173,43 @@ public class Main extends PApplet {
         }
     }
 
+    private void loadOldGameState() {
+        gameField = oldGameField;
+        blocks = oldBlocks;
+    }
+
     private boolean gameFieldHasChanged() {
         for (int yCord = 0; yCord < tiles; yCord++) {
             for (int xCord = 0; xCord < tiles; xCord++) {
                 if ((oldGameField[yCord][xCord] == null && gameField[yCord][xCord] != null) || (oldGameField[yCord][xCord] != null && gameField[yCord][xCord] == null)) {
                     return true;
-                } else if (oldGameField[yCord][xCord] != null && gameField[yCord][xCord] != null) {
-                    if (oldGameField[yCord][xCord].getValue() != gameField[yCord][xCord].getValue()) {
-                        return true;
-                    }
                 }
             }
         }
         return false;
     }
 
-    private void updateValue(){
+    private void updateValues() {
         for (Block block : blocks) {
-            if (!block.isUnMerged()){
+            if (!block.isUnMerged()) {
                 block.setValue(block.getValue() * 2);
             }
         }
     }
 
-    private void removeMergedBlocks(){
+    private void removeMergedBlocks() {
         List<Block> copyOfBlocks = new ArrayList<>(blocks);
         for (Block block : copyOfBlocks) {
-            if (block.isMergeRemove()){
+            if (block.isMergeRemove()) {
                 blocks.remove(block);
             }
+        }
+    }
+
+
+    private void resetUnmergedProperty() {
+        for (Block block : blocks) {
+            block.setUnMerged(true);
         }
     }
 
@@ -388,12 +399,6 @@ public class Main extends PApplet {
                     }
                 }
             }
-        }
-    }
-
-    private void resetUnmergedProperty() {
-        for (Block block : blocks) {
-            block.setUnMerged(true);
         }
     }
 
