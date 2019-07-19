@@ -67,6 +67,51 @@ public class Main extends PApplet {
         if (!inAnimation && finishMove) {
             endMove();
         }
+
+
+        if(!movePossible()) {
+            circle(700, 700, 50);
+            // TODO: Loosing Event
+            drawBlocks();
+            noLoop();
+        }
+
+    }
+
+    private boolean movePossible(){
+        for (int yCord = 0; yCord < tiles; yCord++) {
+            for (int xCord = 0; xCord < tiles; xCord++) {
+                if (gameField[yCord][xCord] == null){
+                    return true;
+                }
+            }
+        }
+
+        for (int yCord = 0; yCord < tiles; yCord++) {
+            for (int xCord = 0; xCord < tiles; xCord++) {
+                if(xCord > 0){
+                    if (gameField[yCord][xCord - 1].getValue() == gameField[yCord][xCord].getValue()){
+                        return true;
+                    }
+                }
+                if(xCord < tiles - 1){
+                    if(gameField[yCord][xCord].getValue() == gameField[yCord][xCord + 1].getValue()){
+                        return true;
+                    }
+                }
+                if(yCord > 0){
+                    if (gameField[yCord - 1][xCord].getValue() == gameField[yCord][xCord].getValue()){
+                        return true;
+                    }
+                }
+                if(yCord < tiles - 1){
+                    if (gameField[yCord][xCord].getValue() == gameField[yCord + 1][xCord].getValue()){
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public void keyPressed() {
