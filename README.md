@@ -1,5 +1,5 @@
 # 2048
-I recreated the popular game 2048 with java and the [processing](https://github.com/processing) library. 
+I recreated the popular game 2048 from Gabriele Cirulli with java and the [processing](https://github.com/processing) library. 
 
 ![Screenshot](https://github.com/Doeschi/2048/blob/master/other/2048_screenshot.PNG)
 
