@@ -2,6 +2,7 @@ package main;
 
 import model.Block;
 import model.Direction;
+import model.JColor;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
@@ -36,15 +37,8 @@ public class Main extends PApplet {
     private int imageYOffset = 235;
     private int gridLineOffset = 10;
     private int tileOffset = tileSize + gridLineOffset;
-    private int scoreXOffset = 610;
-    private int scoreYOffset = 135;
-
-    // TODO: Merge von 2 Blöcken smoother machen
-    // TODO: Mit Bildern arbeiten
-    // TODO: Loosing Condition
-    // TODO: Arrays in Matrix Objekte verwandeln
-
-    // Processing Setup
+    private int scoreXCord = 610;
+    private int scoreYCord = 135;
 
     public void settings() {
         size(windowWidth, windowHeight);
@@ -62,50 +56,56 @@ public class Main extends PApplet {
     public void draw() {
         animateMovement();
         setInAnimation();
-
-        image(backgroundImage, 0, 0);
-        drawBlocks();
-        drawScore();
+        drawGame();
 
         if (!inAnimation && finishMove) {
             endMove();
         }
 
-        if(!movePossible()) {
-            image(backgroundImage, 0, 0);
-            // TODO: Loosing Event
-            drawBlocks();
+        if (!movePossible()) {
+            drawGame();
+            fill(JColor.GAMEOVER.getRed(), JColor.GAMEOVER.getGreen(), JColor.GAMEOVER.getBlue());
+            textAlign(CENTER, BOTTOM);
+            text("Gameover", windowWidth / 2, imageYOffset - 15);
             noLoop();
         }
-
     }
 
     public void keyPressed() {
         if (!inAnimation) {
             if (key == 'r' || keyCode == 'R') {
                 loadOldGameState();
-            } else if (keyCode == LEFT) {
+            } else if (key == 'g' || key == 'G') {
+                restartGame();
+                loop();
+            } else if (key == 'a' || key == 'A' || keyCode == LEFT) {
                 animationDirection = Direction.LEFT;
                 startMove();
                 moveLeft();
                 finishMove = true;
-            } else if (keyCode == UP) {
+            } else if (key == 'w' || key == 'W' || keyCode == UP) {
                 animationDirection = Direction.UP;
                 startMove();
                 moveUp();
                 finishMove = true;
-            } else if (keyCode == RIGHT) {
+            } else if (key == 'd' || key == 'D' || keyCode == RIGHT) {
                 animationDirection = Direction.RIGHT;
                 startMove();
                 moveRight();
                 finishMove = true;
-            } else if (keyCode == DOWN) {
+            } else if (key == 's' || key == 'S' || keyCode == DOWN) {
                 animationDirection = Direction.DOWN;
                 startMove();
                 moveDown();
                 finishMove = true;
             }
         }
+    }
+
+    private void drawGame(){
+        image(backgroundImage, 0, 0);
+        drawScore();
+        drawBlocks();
     }
 
     private void startMove() {
@@ -115,7 +115,7 @@ public class Main extends PApplet {
         }
     }
 
-    private void endMove(){
+    private void endMove() {
         if (gameFieldHasChanged()) {
             spawnNewBlock();
         }
@@ -123,6 +123,24 @@ public class Main extends PApplet {
         removeMergedBlocks();
         resetUnmergedProperty();
         finishMove = false;
+        drawGame();
+    }
+
+    private void restartGame() {
+        animationDirection = Direction.LEFT;
+
+        gameField = new Block[tiles][tiles];
+        oldGameField = new Block[tiles][tiles];
+        blocks = new ArrayList<>();
+        oldBlocks = new ArrayList<>();
+        score = 0;
+
+        inAnimation = false;
+        finishMove = false;
+
+        for (int i = 0; i < 2; i++) {
+            spawnNewBlock();
+        }
     }
 
     private void animateMovement() {
@@ -168,7 +186,6 @@ public class Main extends PApplet {
         }
     }
 
-
     private void setInAnimation() {
         for (Block block : blocks) {
             if (block.isInAnimation()) {
@@ -177,6 +194,42 @@ public class Main extends PApplet {
             }
         }
         inAnimation = false;
+    }
+
+    private boolean movePossible() {
+        for (int yCord = 0; yCord < tiles; yCord++) {
+            for (int xCord = 0; xCord < tiles; xCord++) {
+                if (gameField[yCord][xCord] == null) {
+                    return true;
+                }
+            }
+        }
+
+        for (int yCord = 0; yCord < tiles; yCord++) {
+            for (int xCord = 0; xCord < tiles; xCord++) {
+                if (xCord > 0) {
+                    if (gameField[yCord][xCord - 1].getValue() == gameField[yCord][xCord].getValue()) {
+                        return true;
+                    }
+                }
+                if (xCord < tiles - 1) {
+                    if (gameField[yCord][xCord].getValue() == gameField[yCord][xCord + 1].getValue()) {
+                        return true;
+                    }
+                }
+                if (yCord > 0) {
+                    if (gameField[yCord - 1][xCord].getValue() == gameField[yCord][xCord].getValue()) {
+                        return true;
+                    }
+                }
+                if (yCord < tiles - 1) {
+                    if (gameField[yCord][xCord].getValue() == gameField[yCord + 1][xCord].getValue()) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private void saveGameState() {
@@ -194,42 +247,6 @@ public class Main extends PApplet {
                 }
             }
         }
-    }
-
-    private boolean movePossible(){
-        for (int yCord = 0; yCord < tiles; yCord++) {
-            for (int xCord = 0; xCord < tiles; xCord++) {
-                if (gameField[yCord][xCord] == null){
-                    return true;
-                }
-            }
-        }
-
-        for (int yCord = 0; yCord < tiles; yCord++) {
-            for (int xCord = 0; xCord < tiles; xCord++) {
-                if(xCord > 0){
-                    if (gameField[yCord][xCord - 1].getValue() == gameField[yCord][xCord].getValue()){
-                        return true;
-                    }
-                }
-                if(xCord < tiles - 1){
-                    if(gameField[yCord][xCord].getValue() == gameField[yCord][xCord + 1].getValue()){
-                        return true;
-                    }
-                }
-                if(yCord > 0){
-                    if (gameField[yCord - 1][xCord].getValue() == gameField[yCord][xCord].getValue()){
-                        return true;
-                    }
-                }
-                if(yCord < tiles - 1){
-                    if (gameField[yCord][xCord].getValue() == gameField[yCord + 1][xCord].getValue()){
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     private void loadOldGameState() {
@@ -266,35 +283,15 @@ public class Main extends PApplet {
         }
     }
 
-
     private void resetUnmergedProperty() {
         for (Block block : blocks) {
             block.setUnMerged(true);
         }
     }
 
-    /**
-     * Draws a little grid
-     */
-    private void drawGrid() {
-        for (int i = 0; i < tiles; i++) {
-            int xCord = i * tileSize;
-            line(xCord, 0, xCord, gameFieldSize);
-            stroke(170);
-        }
-
-        for (int i = 0; i < tiles; i++) {
-            int yCord = i * tileSize;
-            line(0, yCord, gameFieldSize, yCord);
-            stroke(170);
-        }
-    }
-
-    /**
-     * Draws every block
-     */
     private void drawBlocks() {
         for (Block block : blocks) {
+            noStroke();
             fill(block.getColor().getRed(), block.getColor().getGreen(), block.getColor().getBlue());
             rect(block.getPosition().x + imageXOffset, block.getPosition().y + imageYOffset, tileSize, tileSize);
             noFill();
@@ -302,11 +299,6 @@ public class Main extends PApplet {
         }
     }
 
-    /**
-     * Draws the number of a block
-     *
-     * @param block the block
-     */
     private void drawNumber(Block block) {
         fill(0);
         textSize(20);
@@ -315,17 +307,14 @@ public class Main extends PApplet {
         noFill();
     }
 
-    private void drawScore(){
+    private void drawScore() {
         fill(0);
         textSize(30);
         textAlign(CENTER, CENTER);
-        text(score, scoreXOffset, scoreYOffset);
+        text(score, scoreXCord, scoreYCord);
         noFill();
     }
 
-    /**
-     * Creates a new block and makes sure that it is not placed above another block.
-     */
     private void spawnNewBlock() {
         Random random = new Random();
         do {
