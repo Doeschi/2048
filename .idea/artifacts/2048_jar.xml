@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="2048:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/2048_jar</output-path>
+    <root id="archive" name="2048.jar">
+      <element id="module-output" name="2048" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/library/core.jar" path-in-jar="/" />
+      <element id="library" level="project" name="processing-core" />
+    </root>
+  </artifact>
+</component>
